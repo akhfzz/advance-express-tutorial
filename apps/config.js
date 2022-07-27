@@ -20,16 +20,3 @@ app.use((req, res, next) => {
 
 
 module.exports = app
-
-
-// // const doWork=async()=> {
-// //     let func = await add(10,2);
-// //     let funcs = await add(func, 2);
-// //     let funces = await add(funcs, 2)
-// //     return funces
-// // }
-// // add(10,2).then(res=>console.log('prom',res))
-
-// // doWork().then((res) => {
-// //     console.log('async',res)
-// // })

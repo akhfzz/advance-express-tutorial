@@ -1,12 +1,13 @@
-const mongoose = require('mongoose');
+const {mongoose, Schema} = require('mongoose');
 const validator = require('validator')
+const multer = require('multer')
 
 mongoose.connect('mongodb://127.0.0.1:27017/expressAPI', {
     useNewUrlParser: true,
     useUnifiedTopology: true
 }).then(() => console.log('Connected')).catch(err=>console.log(err.message))
 
-const Lesson = mongoose.model('lesson-school', {
+const lessonSchema = new Schema({
     code: {type: String, required:true,trim:true},
     lesson: {type: String, required: true,trim:true},
     sks: {
@@ -22,9 +23,11 @@ const Lesson = mongoose.model('lesson-school', {
         }
     },
     user_id: {type:mongoose.Schema.Types.ObjectId, required:true, trim:true, ref:'User'}
-});
+})
 
-const Users = mongoose.model('User', {
+const Lesson = mongoose.model('lesson', lessonSchema);
+
+let userSchema = new Schema({
     nim: {type: Number, required: true,trim:true},
     email: {
         type: String, 
@@ -48,7 +51,32 @@ const Users = mongoose.model('User', {
             message: props => 'Length dont more than 6'
         }
     },
-    password: {type: String, required: true,trim:true, minlength: 8}
+    password: {type: String, required: true,trim:true, minlength: 8},
+    date: { type: Date, default: Date.now },
+    profile: {
+        type: Buffer
+    }
 })
 
-module.exports = { Lesson, Users };
+const Users = mongoose.model('User', userSchema)
+
+userSchema.virtual('lessons', {
+    ref: 'lesson',
+    localField: '_id',
+    foreignField: 'user_id'
+})
+
+const upload = multer({
+    dest: 'images',
+    limits: {
+        fileSize: 100000
+    },
+    fileFilter: (req, file, cb) => {
+        if(!file.originalname.match(/\.jpg$/)){
+            return cb(new Error('File must be jpg'))
+        }
+        cb(undefined, true)
+    }
+})
+
+module.exports = { Lesson, Users, upload };

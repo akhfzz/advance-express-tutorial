@@ -1,4 +1,4 @@
-const app = require('./model/app')
+const app = require('./apps/config')
 
 app.listen(3000, () => {
     console.log('Server connected to port 3000')

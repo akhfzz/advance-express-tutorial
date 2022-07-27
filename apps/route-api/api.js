@@ -1,15 +1,32 @@
-const {Lesson, Users} = require('../models');
-
-const exp = require('express');
-const hash = require('bcrypt');
-const jwt = require('jsonwebtoken');
-const dotenv = require('dotenv');
-const auth = require('./auth');
+const {Lesson, Users, upload} = require('../models');
+const {hash, jwt, dotenv, auth, route} = require('./app')
+const mongoose = require('mongoose');
+const e = require('express');
 
 dotenv.config()
 
-const route = exp.Router();
-
+route.post('/upload-image', auth, upload.single('profile'), async(req, res) => {
+    req.user.profile = req.file.filename
+    console.log(req.file)
+    await req.user.save()
+    if(req.body.upload == ''){
+        res.status(400).send({
+            status: false,
+            message: 'Cant null'
+        })
+        return
+    }
+    res.status(200).send({
+        status: true,
+        message: 'File has been uploaded'
+    })
+    return
+}, (err, req, res, next) => {
+    res.status(400).send({
+        status: false,
+        message: err.message
+    })
+})
 
 route.post('/add', async (req, res) => {
     const obj = new Users(req.body);
@@ -163,13 +180,61 @@ route.post('/login', async (req, res) => {
     }
 })
 
-route.post("/logout", auth, async(req, res) => {
+route.get("/get-lesson", auth, async(req, res) => {
+    let lesson_list = await Lesson.find({});
     try{
-
+        res.status(200).send({
+            status: true,
+            message: lesson_list
+        })
+        return
     }catch(e){
         res.status(400).send({
             status:false,
             message: e.message
+        })
+        return
+    }
+})
+
+route.get('/paginate', auth, async(req, res) => {
+    try{
+        await req.user.populate({
+            path: 'lessons',
+            match: {
+                sks: req.query.sks
+            },
+            options: {
+                limit: parseInt(req.query.limit),
+                skip: parseInt(req.query.skip),
+                sort: {
+                    code: -1
+                }
+            }
+        })
+        res.status(200).send(req.user.lessons)
+    }catch(e){
+        res.status(400).send({
+            status:false,
+            message:e.message
+        })
+    }
+})
+
+route.get('/filter-lesson', auth, async(req, res) => {
+
+    try{
+        let y = await Lesson.find({}).where({user_id:{_id:mongoose.Types.ObjectId(req.user.id)}})
+        
+        res.status(200).send({
+            status:true,
+            message: y
+        })
+        return
+    }catch(e){
+        res.status(400).send({
+            status:false,
+            message:e.message
         })
     }
 })
@@ -205,7 +270,7 @@ route.patch("/update/me", auth,async (req, res) => {
     }
 })
 
-route.delete("/del/:id",async (req, res) => {
+route.delete("/del/:id",auth,async (req, res) => {
     let varDel = await Users.findByIdAndDelete(req.params.id);
     try{
         if(!varDel){
